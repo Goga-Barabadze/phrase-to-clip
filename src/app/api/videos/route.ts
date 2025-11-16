@@ -27,9 +27,19 @@ function getAuthFromEnv(): { cookies?: string; csrfToken?: string } {
 async function getSessionCookies(): Promise<{ cookies: string; csrfToken: string }> {
   // First, try to get from environment variables
   const envAuth = getAuthFromEnv();
+  console.log('Environment auth check:', {
+    hasCookies: !!envAuth.cookies,
+    hasCsrfToken: !!envAuth.csrfToken,
+    cookiesLength: envAuth.cookies?.length || 0,
+    csrfTokenLength: envAuth.csrfToken?.length || 0,
+  });
+  
   if (envAuth.cookies && envAuth.csrfToken) {
+    console.log('Using environment variables for auth');
     return { cookies: envAuth.cookies, csrfToken: envAuth.csrfToken };
   }
+  
+  console.log('Environment variables not found, attempting to fetch cookies/CSRF token from homepage');
 
   try {
     // Fetch the homepage to get cookies and CSRF token
@@ -74,6 +84,8 @@ async function getSessionCookies(): Promise<{ cookies: string; csrfToken: string
       .filter(Boolean)
       .join('; ');
 
+    console.log('Fetched cookies from homepage:', cookies ? `${cookies.substring(0, 100)}...` : 'none');
+
     // Try to extract CSRF token from HTML
     const html = await response.text();
     let csrfToken = '';
@@ -90,8 +102,13 @@ async function getSessionCookies(): Promise<{ cookies: string; csrfToken: string
       const match = html.match(pattern);
       if (match && match[1]) {
         csrfToken = match[1];
+        console.log('Found CSRF token from HTML:', csrfToken.substring(0, 50) + '...');
         break;
       }
+    }
+    
+    if (!csrfToken) {
+      console.log('CSRF token not found in HTML, checking if cookies alone are sufficient');
     }
 
     // If we found cookies but no CSRF token, try fetching from a search page
@@ -292,6 +309,13 @@ export async function GET(request: NextRequest) {
 
     // Get session cookies and CSRF token first
     const { cookies, csrfToken } = await getSessionCookies();
+    
+    console.log('Using auth for search:', {
+      hasCookies: !!cookies,
+      hasCsrfToken: !!csrfToken,
+      cookiesPreview: cookies ? `${cookies.substring(0, 50)}...` : 'none',
+      csrfTokenPreview: csrfToken ? `${csrfToken.substring(0, 30)}...` : 'none',
+    });
 
     // Search for phrases
     const results: PhraseResult[] = await searchPhrases(phrase, language, 5, cookies, csrfToken);
