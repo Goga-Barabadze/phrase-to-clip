@@ -94,14 +94,21 @@ function VideoPlayer() {
 
     const requestFullscreen = async () => {
       try {
+        interface FullscreenElement extends HTMLElement {
+          webkitRequestFullscreen?: () => Promise<void>;
+          mozRequestFullScreen?: () => Promise<void>;
+          msRequestFullscreen?: () => Promise<void>;
+        }
+        const fullscreenContainer = container as FullscreenElement;
+        
         if (container.requestFullscreen) {
           await container.requestFullscreen();
-        } else if ((container as any).webkitRequestFullscreen) {
-          await (container as any).webkitRequestFullscreen();
-        } else if ((container as any).mozRequestFullScreen) {
-          await (container as any).mozRequestFullScreen();
-        } else if ((container as any).msRequestFullscreen) {
-          await (container as any).msRequestFullscreen();
+        } else if (fullscreenContainer.webkitRequestFullscreen) {
+          await fullscreenContainer.webkitRequestFullscreen();
+        } else if (fullscreenContainer.mozRequestFullScreen) {
+          await fullscreenContainer.mozRequestFullScreen();
+        } else if (fullscreenContainer.msRequestFullscreen) {
+          await fullscreenContainer.msRequestFullscreen();
         }
       } catch (err) {
         console.error('Error requesting fullscreen:', err);

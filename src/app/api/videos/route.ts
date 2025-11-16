@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 interface PhraseResult {
-  _id: string;
-  video_id: string;
-  [key: string]: any;
+  _id?: string;
+  video_id?: string;
+  videoId?: string;
+  id?: string;
+  [key: string]: string | undefined;
 }
 
 interface VideoResponse {
-  video_url: string;
-  [key: string]: any;
+  video_url?: string;
+  videoUrl?: string;
+  url?: string;
+  video?: string;
+  [key: string]: string | undefined;
 }
 
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15';
 
-async function searchPhrases(q: string, language: string, limit: number = 5) {
+async function searchPhrases(q: string, language: string, limit: number = 5): Promise<PhraseResult[]> {
   const searchUrl = new URL('https://www.playphrase.me/api-langs/v1/phrases/search');
   searchUrl.searchParams.set('q', q);
   searchUrl.searchParams.set('limit', limit.toString());
@@ -41,8 +46,14 @@ async function searchPhrases(q: string, language: string, limit: number = 5) {
     throw new Error(`Search API failed: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data.results || data || [];
+  const data = await response.json() as { results?: PhraseResult[] } | PhraseResult[] | PhraseResult;
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
+    return data.results;
+  }
+  return [];
 }
 
 async function getVideoDetails(videoId: string): Promise<string> {
@@ -70,7 +81,7 @@ async function getVideoDetails(videoId: string): Promise<string> {
     throw new Error(`Video API failed: ${response.status} ${response.statusText}`);
   }
 
-  const data: VideoResponse = await response.json();
+  const data = await response.json() as VideoResponse;
   // Try different possible field names for video URL
   return data.video_url || data.videoUrl || data.url || data.video || '';
 }
