@@ -121,41 +121,34 @@ function VideoPlayer() {
     if (!video || !subtitles[currentIndex]) return;
 
     const updateSubtitle = () => {
-      // Convert video time to milliseconds (start/end are in milliseconds from API)
+      // Convert video time to milliseconds (word start/end are in milliseconds from API)
       const currentTimeMs = video.currentTime * 1000;
       const subtitle = subtitles[currentIndex];
       
-      // Check if current time is within subtitle timing window
-      if (currentTimeMs >= subtitle.start && currentTimeMs <= subtitle.end) {
-        setCurrentSubtitle(subtitle.text);
+      // Always show the subtitle text for this clip
+      setCurrentSubtitle(subtitle.text);
+      
+      // Find which word is currently being spoken using word timings
+      // Word timings are relative to the clip start (0), so use directly
+      if (subtitle.words && subtitle.words.length > 0) {
+        let wordIndex = -1;
         
-        // Find which word is currently being spoken
-        if (subtitle.words && subtitle.words.length > 0) {
-          // Calculate relative time within the subtitle clip
-          const relativeTimeMs = currentTimeMs - subtitle.start;
+        // Find the word whose timing window contains the current time
+        for (let i = 0; i < subtitle.words.length; i++) {
+          const word = subtitle.words[i];
+          const wordStart = word.start ?? 0;
+          const wordEnd = word.end ?? 0;
           
-          // Find the current word based on timing
-          let wordIndex = -1;
-          for (let i = 0; i < subtitle.words.length; i++) {
-            const word = subtitle.words[i];
-            const wordStart = word.start || 0;
-            const wordEnd = word.end || 0;
-            
-            if (relativeTimeMs >= wordStart && relativeTimeMs <= wordEnd) {
-              wordIndex = i;
-              break;
-            }
+          // Check if current time is within this word's timing window
+          if (currentTimeMs >= wordStart && currentTimeMs <= wordEnd) {
+            wordIndex = i;
+            break;
           }
-          
-          setCurrentWordIndex(wordIndex);
         }
-      } else if (currentTimeMs < subtitle.start) {
-        // Before subtitle starts, show the subtitle text
-        setCurrentSubtitle(subtitle.text);
-        setCurrentWordIndex(-1);
-      } else if (currentTimeMs > subtitle.end) {
-        // After subtitle ends, clear it
-        setCurrentSubtitle('');
+        
+        setCurrentWordIndex(wordIndex);
+      } else {
+        // No word timing data available
         setCurrentWordIndex(-1);
       }
     };
