@@ -146,6 +146,8 @@ async function searchPhrases(q: string, language: string, limit: number = 5, coo
   searchUrl.searchParams.set('language', language);
   searchUrl.searchParams.set('platform', 'desktop safari');
   searchUrl.searchParams.set('skip', '0');
+  
+  console.log('Search API URL:', searchUrl.toString());
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -166,6 +168,9 @@ async function searchPhrases(q: string, language: string, limit: number = 5, coo
   if (csrfToken) {
     headers['X-Csrf-Token'] = csrfToken;
   }
+
+  console.log('Search API headers:', JSON.stringify(headers, null, 2).substring(0, 500));
+  console.log('Search API request - cookies present:', !!cookies, 'CSRF token present:', !!csrfToken);
 
   const response = await fetch(searchUrl.toString(), {
     method: 'GET',
