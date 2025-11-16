@@ -14,5 +14,9 @@
   "observability": {
     "enabled": true
   },
-  "upload_source_maps": true
+  "upload_source_maps": true,
+  "vars": {
+    "PLAYPHRASE_COOKIES": "REPLACE_WITH_YOUR_COOKIES_FROM_CURL",
+    "PLAYPHRASE_CSRF_TOKEN": "REPLACE_WITH_YOUR_CSRF_TOKEN_FROM_CURL"
+  }
 }
