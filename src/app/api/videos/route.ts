@@ -8,14 +8,6 @@ interface PhraseResult {
   [key: string]: string | undefined;
 }
 
-interface VideoResponse {
-  video_url?: string;
-  videoUrl?: string;
-  url?: string;
-  video?: string;
-  [key: string]: string | undefined;
-}
-
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15';
 
 // Try to get cookies and CSRF token from environment variables first
