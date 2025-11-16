@@ -34,7 +34,27 @@ async function getSessionCookies(): Promise<string> {
     }
 
     // Parse all Set-Cookie headers properly
-    const setCookieHeaders = response.headers.getSetCookie();
+    let setCookieHeaders: string[] = [];
+    try {
+      if (typeof response.headers.getSetCookie === 'function') {
+        setCookieHeaders = response.headers.getSetCookie();
+      } else {
+        // Fallback: try to get set-cookie header and parse it
+        const setCookieHeader = response.headers.get('set-cookie');
+        if (setCookieHeader) {
+          // Split by comma but be careful - Set-Cookie values can contain commas in dates
+          // Simple approach: split and take first part of each
+          setCookieHeaders = [setCookieHeader];
+        }
+      }
+    } catch {
+      // If parsing fails, try to get set-cookie header directly
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (setCookieHeader) {
+        setCookieHeaders = [setCookieHeader];
+      }
+    }
+    
     const cookies = setCookieHeaders
       .map(cookie => {
         // Extract cookie name=value part (before semicolon)
