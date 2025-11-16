@@ -173,13 +173,50 @@ async function searchPhrases(q: string, language: string, limit: number = 5, coo
     throw new Error(`Search API failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`);
   }
 
-  const data = await response.json() as { results?: PhraseResult[] } | PhraseResult[] | PhraseResult;
+  const responseText = await response.text();
+  console.log('Search API raw response:', responseText.substring(0, 500));
+  
+  let data: unknown;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    console.error('Failed to parse JSON response:', responseText.substring(0, 200));
+    return [];
+  }
+
+  console.log('Search API parsed data type:', typeof data, 'Is array:', Array.isArray(data));
   if (Array.isArray(data)) {
-    return data;
+    console.log('Search API returned array with', data.length, 'items');
+    if (data.length > 0) {
+      console.log('First item structure:', JSON.stringify(data[0]).substring(0, 300));
+    }
+    return data as PhraseResult[];
   }
-  if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
-    return data.results;
+  
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    console.log('Search API returned object with keys:', Object.keys(obj));
+    
+    if ('results' in obj && Array.isArray(obj.results)) {
+      console.log('Found results array with', obj.results.length, 'items');
+      if (obj.results.length > 0) {
+        console.log('First result structure:', JSON.stringify(obj.results[0]).substring(0, 300));
+      }
+      return obj.results as PhraseResult[];
+    }
+    
+    // Try other common property names
+    if ('data' in obj && Array.isArray(obj.data)) {
+      console.log('Found data array with', obj.data.length, 'items');
+      return obj.data as PhraseResult[];
+    }
+    if ('items' in obj && Array.isArray(obj.items)) {
+      console.log('Found items array with', obj.items.length, 'items');
+      return obj.items as PhraseResult[];
+    }
   }
+  
+  console.log('No valid results found in response structure');
   return [];
 }
 
@@ -222,9 +259,30 @@ async function getVideoDetails(videoId: string, cookies?: string, csrfToken?: st
     throw new Error(`Video API failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`);
   }
 
-  const data = await response.json() as VideoResponse;
-  // Try different possible field names for video URL
-  return data.video_url || data.videoUrl || data.url || data.video || '';
+  const responseText = await response.text();
+  console.log('Video details API raw response:', responseText.substring(0, 500));
+  
+  let data: unknown;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    console.error('Failed to parse video details JSON:', responseText.substring(0, 200));
+    return '';
+  }
+
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    console.log('Video details object keys:', Object.keys(obj));
+    
+    // Try different possible field names for video URL
+    const videoUrl = obj.video_url || obj.videoUrl || obj.url || obj.video || obj.video_src || obj.src;
+    if (videoUrl && typeof videoUrl === 'string') {
+      return videoUrl;
+    }
+  }
+  
+  console.log('No video URL found in response');
+  return '';
 }
 
 export async function GET(request: NextRequest) {
@@ -250,15 +308,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ videos: [] });
     }
 
+    console.log('Processing', results.length, 'search results');
+    
     // Fetch video details for each result
-    const videoPromises = results.map((result) => {
+    const videoPromises = results.map((result, index) => {
+      console.log(`Result ${index}:`, JSON.stringify(result).substring(0, 200));
+      
       // Try different possible field names for video ID
       const videoId = result.video_id || result.videoId || result._id || result.id;
       if (!videoId) {
-        console.error('No video ID found in result:', result);
+        console.error('No video ID found in result:', JSON.stringify(result));
         return Promise.resolve(null);
       }
-      return getVideoDetails(videoId, cookies, csrfToken).catch((error) => {
+      
+      console.log(`Fetching video details for ID: ${videoId}`);
+      return getVideoDetails(videoId, cookies, csrfToken).then((url) => {
+        console.log(`Got video URL for ${videoId}:`, url ? url.substring(0, 100) : 'null');
+        return url;
+      }).catch((error) => {
         console.error(`Failed to fetch video ${videoId}:`, error);
         return null;
       });
