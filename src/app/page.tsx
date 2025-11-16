@@ -27,6 +27,7 @@ function VideoPlayer() {
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSubtitle, setCurrentSubtitle] = useState<string>('');
+  const [currentWordIndex, setCurrentWordIndex] = useState<number>(-1);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -110,7 +111,7 @@ function VideoPlayer() {
     });
   }, [currentIndex, videos, subtitles]);
 
-  // Update subtitle text as video plays based on timing
+  // Update subtitle text and highlight current word as video plays
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !subtitles[currentIndex]) return;
@@ -123,12 +124,35 @@ function VideoPlayer() {
       // Check if current time is within subtitle timing window
       if (currentTimeMs >= subtitle.start && currentTimeMs <= subtitle.end) {
         setCurrentSubtitle(subtitle.text);
+        
+        // Find which word is currently being spoken
+        if (subtitle.words && subtitle.words.length > 0) {
+          // Calculate relative time within the subtitle clip
+          const relativeTimeMs = currentTimeMs - subtitle.start;
+          
+          // Find the current word based on timing
+          let wordIndex = -1;
+          for (let i = 0; i < subtitle.words.length; i++) {
+            const word = subtitle.words[i];
+            const wordStart = word.start || 0;
+            const wordEnd = word.end || 0;
+            
+            if (relativeTimeMs >= wordStart && relativeTimeMs <= wordEnd) {
+              wordIndex = i;
+              break;
+            }
+          }
+          
+          setCurrentWordIndex(wordIndex);
+        }
       } else if (currentTimeMs < subtitle.start) {
-        // Before subtitle starts, show nothing or the subtitle text
+        // Before subtitle starts, show the subtitle text
         setCurrentSubtitle(subtitle.text);
+        setCurrentWordIndex(-1);
       } else if (currentTimeMs > subtitle.end) {
         // After subtitle ends, clear it
         setCurrentSubtitle('');
+        setCurrentWordIndex(-1);
       }
     };
 
@@ -137,6 +161,7 @@ function VideoPlayer() {
     // Initial subtitle set
     if (subtitles[currentIndex]) {
       setCurrentSubtitle(subtitles[currentIndex].text);
+      setCurrentWordIndex(-1);
     }
 
     return () => {
@@ -217,9 +242,25 @@ function VideoPlayer() {
         playsInline
         muted={false}
       />
-      {currentSubtitle && (
+      {currentSubtitle && subtitles[currentIndex] && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-6 py-3 rounded-lg text-xl font-medium max-w-4xl text-center">
-          {currentSubtitle}
+          {subtitles[currentIndex].words && subtitles[currentIndex].words.length > 0 ? (
+            // Render with word-by-word highlighting
+            <span>
+              {subtitles[currentIndex].words.map((word, index) => (
+                <span
+                  key={index}
+                  className={index === currentWordIndex ? 'text-yellow-400 font-bold' : ''}
+                >
+                  {word.text || ''}
+                  {index < subtitles[currentIndex].words!.length - 1 && ' '}
+                </span>
+              ))}
+            </span>
+          ) : (
+            // Fallback to plain text if no word data
+            currentSubtitle
+          )}
         </div>
       )}
     </div>
