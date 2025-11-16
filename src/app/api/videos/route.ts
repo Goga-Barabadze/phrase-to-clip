@@ -29,16 +29,11 @@ async function searchPhrases(q: string, language: string, limit: number = 5): Pr
   const response = await fetch(searchUrl.toString(), {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Token',
-      'Sec-Fetch-Site': 'same-origin',
       'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Sec-Fetch-Mode': 'cors',
       'User-Agent': USER_AGENT,
       'Referer': 'https://www.playphrase.me/',
-      'Sec-Fetch-Dest': 'empty',
+      'Origin': 'https://www.playphrase.me',
     },
   });
 
@@ -64,16 +59,11 @@ async function getVideoDetails(videoId: string): Promise<string> {
   const response = await fetch(videoUrl.toString(), {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Token',
-      'Sec-Fetch-Site': 'same-origin',
       'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Sec-Fetch-Mode': 'cors',
       'User-Agent': USER_AGENT,
       'Referer': 'https://www.playphrase.me/',
-      'Sec-Fetch-Dest': 'empty',
+      'Origin': 'https://www.playphrase.me',
     },
   });
 
