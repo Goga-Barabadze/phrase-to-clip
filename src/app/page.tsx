@@ -54,7 +54,11 @@ function VideoPlayer() {
         });
 
         if (!searchResponse.ok) {
-          throw new Error(`Search failed: ${searchResponse.status} ${searchResponse.statusText}`);
+          const errorText = await searchResponse.text().catch(() => searchResponse.statusText);
+          if (searchResponse.status === 403) {
+            throw new Error(`Access denied (403). The API may require visiting playphrase.me in your browser first to establish a session. Error: ${errorText.substring(0, 100)}`);
+          }
+          throw new Error(`Search failed: ${searchResponse.status} ${searchResponse.statusText}. ${errorText.substring(0, 100)}`);
         }
 
         const searchData = await searchResponse.json() as { results?: Array<{ video_id?: string; videoId?: string; _id?: string; id?: string }> } | Array<{ video_id?: string; videoId?: string; _id?: string; id?: string }>;
