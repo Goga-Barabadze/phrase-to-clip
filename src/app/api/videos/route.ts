@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 interface PhraseResult {
-  _id?: string;
-  video_id?: string;
-  videoId?: string;
   id?: string;
-  [key: string]: string | undefined;
+  'video-url'?: string;
+  video_url?: string;
+  videoUrl?: string;
+  text?: string;
+  start?: number;
+  end?: number;
+  [key: string]: string | number | undefined;
 }
 
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15';
@@ -339,29 +342,36 @@ export async function GET(request: NextRequest) {
 
     console.log('Processing', results.length, 'search results');
     
-    // Fetch video details for each result
-    const videoPromises = results.map((result, index) => {
-      console.log(`Result ${index}:`, JSON.stringify(result).substring(0, 200));
-      
-      // Try different possible field names for video ID
-      const videoId = result.video_id || result.videoId || result._id || result.id;
-      if (!videoId) {
-        console.error('No video ID found in result:', JSON.stringify(result));
-        return Promise.resolve(null);
-      }
-      
-      console.log(`Fetching video details for ID: ${videoId}`);
-      return getVideoDetails(videoId, cookies, csrfToken).then((url) => {
-        console.log(`Got video URL for ${videoId}:`, url ? url.substring(0, 100) : 'null');
-        return url;
-      }).catch((error) => {
-        console.error(`Failed to fetch video ${videoId}:`, error);
+    // Extract video URLs directly from the phrases (API returns video-url field directly)
+    const videoUrls = results
+      .slice(0, 5)
+      .map((result, index) => {
+        console.log(`Result ${index}:`, JSON.stringify(result).substring(0, 200));
+        
+        // The API returns video URLs directly in 'video-url' field
+        const videoUrl = result['video-url'] || result.video_url || result.videoUrl;
+        if (videoUrl && typeof videoUrl === 'string') {
+          console.log(`Found video URL in result ${index}:`, videoUrl.substring(0, 100));
+          return videoUrl;
+        }
+        
+        // Fallback: if no direct video URL, try to fetch it using the phrase ID
+        const phraseId = result.id;
+        if (phraseId && typeof phraseId === 'string') {
+          console.log(`No direct video URL, fetching for phrase ID: ${phraseId}`);
+          return getVideoDetails(phraseId, cookies, csrfToken).catch((error) => {
+            console.error(`Failed to fetch video for ${phraseId}:`, error);
+            return null;
+          });
+        }
+        
+        console.error('No video URL or ID found in result:', JSON.stringify(result));
         return null;
       });
-    });
-
-    const videoUrls = await Promise.all(videoPromises);
-    const validVideos = videoUrls.filter((url): url is string => url !== null && url !== '');
+    
+    // Wait for any promises to resolve (in case we need to fetch some URLs)
+    const resolvedUrls = await Promise.all(videoUrls);
+    const validVideos = resolvedUrls.filter((url): url is string => url !== null && url !== '');
 
     return NextResponse.json({ videos: validVideos });
   } catch (error) {
