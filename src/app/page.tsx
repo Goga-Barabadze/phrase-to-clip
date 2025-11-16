@@ -247,7 +247,7 @@ function VideoPlayer() {
               {subtitles[currentIndex].words.map((word, index) => (
                 <span
                   key={index}
-                  className={index === currentWordIndex ? 'text-yellow-400 font-bold' : ''}
+                  className={index === currentWordIndex ? 'text-yellow-400' : ''}
                 >
                   {word.text || ''}
                   {index < subtitles[currentIndex].words!.length - 1 && ' '}
