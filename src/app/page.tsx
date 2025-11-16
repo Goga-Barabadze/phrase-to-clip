@@ -26,18 +26,73 @@ function VideoPlayer() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`/api/videos?phrase=${encodeURIComponent(phrase)}&language=${encodeURIComponent(language)}`);
-        
-        if (!response.ok) {
-          const errorData = await response.json() as { error?: string } | null;
-          throw new Error(errorData?.error || 'Failed to fetch videos');
+
+        // Search for phrases
+        const searchUrl = new URL('https://www.playphrase.me/api-langs/v1/phrases/search');
+        searchUrl.searchParams.set('q', phrase);
+        searchUrl.searchParams.set('limit', '5');
+        searchUrl.searchParams.set('language', language);
+        searchUrl.searchParams.set('platform', 'desktop safari');
+        searchUrl.searchParams.set('skip', '0');
+
+        const searchResponse = await fetch(searchUrl.toString(), {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        if (!searchResponse.ok) {
+          throw new Error(`Search failed: ${searchResponse.status} ${searchResponse.statusText}`);
         }
 
-        const data = await response.json() as { videos?: string[] } | null;
-        if (data?.videos && data.videos.length > 0) {
-          setVideos(data.videos);
-        } else {
+        const searchData = await searchResponse.json() as { results?: Array<{ video_id?: string; videoId?: string; _id?: string; id?: string }> } | Array<{ video_id?: string; videoId?: string; _id?: string; id?: string }>;
+        
+        const results = Array.isArray(searchData) ? searchData : (searchData?.results || []);
+        
+        if (results.length === 0) {
           setError('No videos found for this phrase');
+          setLoading(false);
+          return;
+        }
+
+        // Fetch video details for each result
+        const videoPromises = results.slice(0, 5).map(async (result) => {
+          const videoId = result.video_id || result.videoId || result._id || result.id;
+          if (!videoId) {
+            return null;
+          }
+
+          try {
+            const videoUrl = new URL('https://www.playphrase.me/api/v1/phrases/video-view');
+            videoUrl.searchParams.set('video-id', videoId);
+            videoUrl.searchParams.set('platform', 'desktop safari');
+
+            const videoResponse = await fetch(videoUrl.toString(), {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+              },
+            });
+
+            if (!videoResponse.ok) {
+              return null;
+            }
+
+            const videoData = await videoResponse.json() as { video_url?: string; videoUrl?: string; url?: string; video?: string };
+            return videoData.video_url || videoData.videoUrl || videoData.url || videoData.video || null;
+          } catch {
+            return null;
+          }
+        });
+
+        const videoUrls = await Promise.all(videoPromises);
+        const validVideos = videoUrls.filter((url): url is string => url !== null && url !== '');
+
+        if (validVideos.length === 0) {
+          setError('No videos could be loaded');
+        } else {
+          setVideos(validVideos);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
