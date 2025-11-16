@@ -143,8 +143,17 @@ async function getSessionCookies(): Promise<{ cookies: string; csrfToken: string
 }
 
 async function searchPhrases(q: string, language: string, limit: number = 5, cookies?: string, csrfToken?: string): Promise<PhraseResult[]> {
-  const searchUrl = new URL('https://www.playphrase.me/api-langs/v1/phrases/search');
-  searchUrl.searchParams.set('q', q);
+  // English uses a different endpoint: /api/v1/phrases/search
+  // Other languages use: /api-langs/v1/phrases/search
+  const baseUrl = language === 'en' 
+    ? 'https://www.playphrase.me/api/v1/phrases/search'
+    : 'https://www.playphrase.me/api-langs/v1/phrases/search';
+  
+  const searchUrl = new URL(baseUrl);
+  
+  // For English, the query should be wrapped in quotes
+  const queryValue = language === 'en' ? `"${q}"` : q;
+  searchUrl.searchParams.set('q', queryValue);
   searchUrl.searchParams.set('limit', limit.toString());
   searchUrl.searchParams.set('language', language);
   searchUrl.searchParams.set('platform', 'desktop safari');
