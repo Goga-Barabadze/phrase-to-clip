@@ -33,10 +33,16 @@ async function searchPhrases(q: string, language: string, limit: number = 5): Pr
       'Accept-Language': 'en-US,en;q=0.9',
       'User-Agent': USER_AGENT,
     },
+    cf: {
+      cacheTtl: 3600,
+      cacheEverything: false,
+    },
   });
 
   if (!response.ok) {
-    throw new Error(`Search API failed: ${response.status} ${response.statusText}`);
+    // Try to get more details from the response
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Search API failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`);
   }
 
   const data = await response.json() as { results?: PhraseResult[] } | PhraseResult[] | PhraseResult;
@@ -61,10 +67,15 @@ async function getVideoDetails(videoId: string): Promise<string> {
       'Accept-Language': 'en-US,en;q=0.9',
       'User-Agent': USER_AGENT,
     },
+    cf: {
+      cacheTtl: 3600,
+      cacheEverything: false,
+    },
   });
 
   if (!response.ok) {
-    throw new Error(`Video API failed: ${response.status} ${response.statusText}`);
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Video API failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`);
   }
 
   const data = await response.json() as VideoResponse;
