@@ -29,12 +29,12 @@ function VideoPlayer() {
         const response = await fetch(`/api/videos?phrase=${encodeURIComponent(phrase)}&language=${encodeURIComponent(language)}`);
         
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch videos');
+          const errorData = await response.json() as { error?: string } | null;
+          throw new Error(errorData?.error || 'Failed to fetch videos');
         }
 
-        const data = await response.json();
-        if (data.videos && data.videos.length > 0) {
+        const data = await response.json() as { videos?: string[] } | null;
+        if (data?.videos && data.videos.length > 0) {
           setVideos(data.videos);
         } else {
           setError('No videos found for this phrase');
