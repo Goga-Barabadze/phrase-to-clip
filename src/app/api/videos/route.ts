@@ -206,6 +206,16 @@ async function searchPhrases(q: string, language: string, limit: number = 5, coo
     const obj = data as Record<string, unknown>;
     console.log('Search API returned object with keys:', Object.keys(obj));
     
+    // The API returns results in a 'phrases' array
+    if ('phrases' in obj && Array.isArray(obj.phrases)) {
+      console.log('Found phrases array with', obj.phrases.length, 'items');
+      if (obj.phrases.length > 0) {
+        console.log('First phrase structure:', JSON.stringify(obj.phrases[0]).substring(0, 300));
+      }
+      return obj.phrases as PhraseResult[];
+    }
+    
+    // Try other common property names as fallback
     if ('results' in obj && Array.isArray(obj.results)) {
       console.log('Found results array with', obj.results.length, 'items');
       if (obj.results.length > 0) {
@@ -213,8 +223,6 @@ async function searchPhrases(q: string, language: string, limit: number = 5, coo
       }
       return obj.results as PhraseResult[];
     }
-    
-    // Try other common property names
     if ('data' in obj && Array.isArray(obj.data)) {
       console.log('Found data array with', obj.data.length, 'items');
       return obj.data as PhraseResult[];
