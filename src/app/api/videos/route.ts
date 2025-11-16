@@ -337,7 +337,13 @@ export async function GET(request: NextRequest) {
     const results: PhraseResult[] = await searchPhrases(phrase, language, 5, cookies, csrfToken);
 
     if (results.length === 0) {
-      return NextResponse.json({ videos: [] });
+      console.log(`No results found for phrase "${phrase}" in language "${language}"`);
+      return NextResponse.json({ 
+        videos: [],
+        message: language === 'en' 
+          ? 'No English videos found. The API may have limited English content or require a subscription for English.'
+          : `No videos found for phrase "${phrase}" in language "${language}"`
+      });
     }
 
     console.log('Processing', results.length, 'search results');
