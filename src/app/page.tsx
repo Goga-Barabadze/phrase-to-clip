@@ -51,8 +51,11 @@ function VideoPlayer() {
 
         const data = await response.json() as { videos?: string[]; subtitles?: Subtitle[] } | null;
         if (data?.videos && data.videos.length > 0) {
+          // Set videos and subtitles (will loop even if less than 5)
           setVideos(data.videos);
           setSubtitles(data.subtitles || []);
+          // Reset to first video when new videos are loaded
+          setCurrentIndex(0);
         } else {
           setError('No videos found for this phrase');
         }
@@ -72,6 +75,7 @@ function VideoPlayer() {
 
     const handleEnded = () => {
       setCurrentIndex((prev) => {
+        // Loop back to 0 when reaching the end (works for any number of videos)
         const next = (prev + 1) % videos.length;
         return next;
       });

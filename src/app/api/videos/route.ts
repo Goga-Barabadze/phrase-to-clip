@@ -368,8 +368,9 @@ export async function GET(request: NextRequest) {
     console.log('Processing', results.length, 'search results');
     
     // Extract video URLs and subtitle data from the phrases
+    // Process up to 5 results (or fewer if less are available)
     const videoData = results
-      .slice(0, 5)
+      .slice(0, Math.min(5, results.length))
       .map((result, index) => {
         console.log(`Result ${index}:`, JSON.stringify(result).substring(0, 200));
         
